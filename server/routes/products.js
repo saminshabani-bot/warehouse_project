@@ -57,10 +57,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new product
-router.post("/", async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, description, price, stock, min_stock } = req.body;
-
     if (!name || name.trim().length === 0) {
       return res.status(400).json({ message: 'نام کالا الزامی است' });
     }
@@ -84,12 +83,6 @@ router.post("/", async (req, res) => {
         console.error(err);
         return res.status(500).json({ message: 'کالا اضافه نشد!' });
       }
-
-      let query2 = `INSERT INTO inventory_logs (product_id, type, quantity, description) VALUES
-        ( ? , 'IN' , ? , 'افزودن کالای جدید')`;
-
-      db.query(query2, [result.insertId, stock]);
-
       res.status(201).json({ message: 'کالا با موفقیت افزوده شد!' });
     });
   } catch {

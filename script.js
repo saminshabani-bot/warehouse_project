@@ -108,9 +108,6 @@ function navigateToPage(page) {
 
     // Load page data
     switch (page) {
-        case 'dashboard':
-            loadDashboard();
-            break;
         case 'products':
             loadProducts();
             break;
@@ -123,68 +120,7 @@ function navigateToPage(page) {
     }
 }
 
-// Dashboard
-async function loadDashboard() {
-    try {
-        showLoading();
-        const stats = await apiCall('/reports/dashboard');
 
-        document.getElementById('total-products').textContent = stats.totalProducts;
-        document.getElementById('total-orders').textContent = stats.totalOrders;
-        document.getElementById('pending-orders').textContent = stats.pendingOrders;
-        document.getElementById('weekly-revenue').textContent = formatPrice(stats.weeklyRevenue);
-
-        renderLowStockProducts(stats.lowStockProducts);
-        renderRecentOrders(stats.recentOrders);
-    } catch (error) {
-        showError('خطا در بارگیری داشبورد: ' + error.message);
-    } finally {
-        hideLoading();
-    }
-}
-
-function renderLowStockProducts(lowStockProducts) {
-    const container = document.getElementById('low-stock-products');
-
-    if (lowStockProducts.length === 0) {
-        container.innerHTML = '<p class="text-center">موجودی همه محصولات مناسب است</p>';
-        return;
-    }
-
-    container.innerHTML = lowStockProducts.map(product => `
-        <div class="product-item low-stock">
-            <div class="item-info">
-                <h4>${product.name}</h4>
-            </div>
-            <div class="item-stats">
-                <div class="stat">موجودی: ${product.stock}</div>
-                <div class="label">حداقل: ${product.min_stock}</div>
-            </div>
-        </div>
-    `).join('');
-}
-
-function renderRecentOrders(recentOrders) {
-    const container = document.getElementById('recent-orders');
-
-    if (recentOrders.length === 0) {
-        container.innerHTML = '<p class="text-center">سفارشی وجود ندارد</p>';
-        return;
-    }
-
-    container.innerHTML = recentOrders.map(order => `
-        <div class="order-item-display">
-            <div class="item-info">
-                <h4>${order.id}</h4>
-                <p>${order.customer_name}</p>
-            </div>
-            <div class="item-stats">
-                <span class="status-badge ${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
-                <div class="stat">${formatPrice(order.total_price)}</div>
-            </div>
-        </div>
-    `).join('');
-}
 
 // Products
 async function loadProducts() {
@@ -392,7 +328,7 @@ function renderOrdersTable(ordersToShow) {
 
 async function updateOrderStatus(orderId, newStatus) {
     try {
-        await apiCall(`/api/orders/${orderId}/status`, {
+        await apiCall(`http://localhost:3000/api/orders/${orderId}`, {
             method: 'PUT',
             body: JSON.stringify({ status: newStatus })
         });
@@ -539,12 +475,13 @@ function initProductForm() {
             stock: parseInt(document.getElementById('product-stock').value),
             min_stock: parseInt(document.getElementById('product-min-stock').value)
         };
-
         try {
-            await apiCall('/api/products', {
+            const options = {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
-            });
+            };
+            await fetch(`http://localhost:3000/api/products`, options);
 
             hideModal('product-modal');
             loadProducts();
@@ -556,38 +493,84 @@ function initProductForm() {
 
 // Order form
 function initOrderForm() {
-    document.getElementById('add-order-btn').addEventListener('click', () => {
+    const addBtn = document.getElementById('add-order-btn');
+    const form = document.getElementById('order-form');
+
+    // اضافه کردن سفارش جدید
+    addBtn.addEventListener('click', () => {
         orderItems = [{ product_id: 0, quantity: 1 }];
-        document.getElementById('order-form').reset();
+        form.reset();
         renderOrderItems();
         showModal('order-modal');
     });
 
-    document.getElementById('add-order-item').addEventListener('click', () => {
-        orderItems.push({ product_id: 0, quantity: 1 });
-        renderOrderItems();
-    });
-
-    document.getElementById('order-form').addEventListener('submit', async (e) => {
+    // ارسال فرم
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const validItems = orderItems.filter(item => item.product_id > 0 && item.quantity > 0);
+        // فیلتر آیتم‌های معتبر
+        let validItems = [];
+        orderItems.forEach(item => {
+            if (item.product_id > 0 && item.quantity > 0) {
+                validItems.push(item);
+            }
+        });
+
         if (validItems.length === 0) {
             showError('حداقل یک آیتم باید انتخاب شود');
             return;
         }
 
+        const firstItem = validItems[0];
+
+        // محاسبه قیمت کل برای اولین آیتم
+        const selectedProduct = products.find(p => p.id === firstItem.product_id);
+        const totalPrice = selectedProduct
+            ? selectedProduct.price * firstItem.quantity
+            : 0;
+
+        // اعتبارسنجی نام مشتری
+        const customerName = document.getElementById('customer-name').value.trim();
+        if (!customerName || customerName.length > 100) {
+            showError('نام مشتری باید وارد شود و کمتر از 100 کاراکتر باشد');
+            return;
+        }
+
+        // اعتبارسنجی شماره تماس
+        const customerPhone = document.getElementById('customer-phone').value.trim();
+        if (!customerPhone) {
+            showError('شماره تماس باید وارد شود');
+            return;
+        }
+        if (customerPhone.length > 20) {
+            showError('شماره تماس نمی‌تواند بیشتر از 20 کاراکتر باشد');
+            return;
+        }
+
+        // ساخت داده‌های فرم
         const formData = {
-            customer_name: document.getElementById('customer-name').value,
-            customer_email: document.getElementById('customer-email').value,
-            items: validItems
+            product_id: parseInt(firstItem.product_id, 10),
+            quantity: parseInt(firstItem.quantity, 10),
+            total_price: Number(totalPrice.toFixed(2)),
+            customer_name: customerName,
+            customer_phone: customerPhone,
+            notes: '',
+            status: 'pending'
         };
 
         try {
-            await apiCall('/api/orders', {
+            const response = await fetch('http://localhost:3000/api/orders', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                showError(data.message || 'خطا در ثبت سفارش');
+                return;
+            }
 
             hideModal('order-modal');
             loadOrders();
@@ -595,7 +578,9 @@ function initOrderForm() {
             showError('خطا در ثبت سفارش: ' + error.message);
         }
     });
+
 }
+
 
 async function renderOrderItems() {
     if (products.length === 0) {

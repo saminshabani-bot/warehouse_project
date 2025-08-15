@@ -3,7 +3,6 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import db from './config/database.js';
 import productsRouter from './routes/products.js';
 import ordersRouter from './routes/orders.js';
 

@@ -64,47 +64,28 @@ router.get('/:id', async (res, req) => {
 
 
 // Create new order
-router.post('/', async (req, res) => {
-  try {
-    const [product_id, quantity, total_price, customer_name, customer_phone, notes, status] = req.body;
-    if (product_id < 0 || !product_id) {
-      return res.status(500).json({ message: 'شناسه کالا باید معتبر باشد!' });
-    }
-    if (quantity < 0) {
-      return res.status(500).json({ meassage: 'تعداد سفارش حداقل باید 1 باشد!' });
-    }
-    if (!total_price || total_price < 0) {
-      return res.status(500).json({ message: 'قیمت کل باید معتبر باشد!' });
-    }
-    if (!customer_name) {
-      return res.status(500).json({ message: 'نام مشتری باید وارد شود!' });
-    }
+router.post('/', (req, res) => {
+  const { product_id, quantity,total_price,customer_name, customer_phone, notes, status } = req.body;
 
-    let query = `select p.name , p.stock
-                  from products p
-                  where p.id = ?`;
+  if (!product_id || product_id < 1) return res.status(400).json({ message: 'شناسه کالا باید معتبر باشد!' });
+  if (!quantity || quantity < 1) return res.status(400).json({ message: 'تعداد سفارش حداقل باید 1 باشد!' });
+  if (!total_price || total_price < 0) return res.status(400).json({ message: 'قیمت کل باید معتبر باشد!' });
+  if (!customer_name) return res.status(400).json({ message: 'نام مشتری باید وارد شود!' });
 
-    db.query(query, [product_id], (err, result) => {
-      if (err) {
-        return res.status(404).json({ message: 'کالا یافت نشد!' });
-      }
+  const querySelect = `SELECT name, stock FROM products WHERE id = ?`;
+  db.query(querySelect, [product_id], (err, result) => {
+    if (err || result.length === 0) return res.status(404).json({ message: 'کالا یافت نشد!' });
 
-    });
-
-    let query2 = `INSERT INTO  orders (product_id, quantity, total_price, customer_name, customer_phone, notes, status) VALUES 
-                    (?,?,?,?,?,?,?)`;
-
-    db.query(query2, [product_id, quantity, total_price, customer_name, customer_phone, notes, status], (err, result) => {
+    const queryInsert = `INSERT INTO orders (product_id, quantity, total_price, customer_name, customer_phone, notes, status)
+                         VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    db.query(queryInsert, [product_id, quantity, total_price, customer_name, customer_phone, notes, status], (err, result) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ message: 'افزودن سفارش با خطا مواجه شد!' });
       }
       res.json({ message: 'سفارش با موفقیت افزوده شد!' });
     });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: 'خطا در سرور' });
-  }
+  });
 });
 
 // Update order status
