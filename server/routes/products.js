@@ -103,16 +103,16 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     let { name, description, price, stock, min_stock } = req.body;
     if (name.trim().length == 0) {
-      res.status(400).json({ message: 'اسم باید وارد شود' });
+      return res.status(400).json({ message: 'اسم باید وارد شود' });
     }
     if (stock < 0) {
-      res.status(400).json({ message: 'موجودی باید مقدار مثبت باشد!' });
+      return res.status(400).json({ message: 'موجودی باید مقدار مثبت باشد!' });
     }
     if (min_stock < 0) {
-      res.status(400).json({ message: 'مقدار حداقل موجودی باید مثبت باشد!' });
+      return res.status(400).json({ message: 'مقدار حداقل موجودی باید مثبت باشد!' });
     }
     if (price < 0) {
-      res.status(400).json({ message: 'مقدار قیمت باید مثبت باشد!' });
+      return res.status(400).json({ message: 'مقدار قیمت باید مثبت باشد!' });
     }
 
     let query = `
@@ -125,7 +125,7 @@ router.put('/:id', async (req, res) => {
         console.error(err);
         return res.status(400).json({ message: 'خطا در بروزرسانی کالا!' });
       }
-      res.status(201).json({ message: 'کالا با موفقیت بروزرسانی شد!' });
+      res.status(200).json({ message: 'کالا با موفقیت بروزرسانی شد!' });
     });
   } catch {
     res.status(500).json({ message: 'خطا در سرور' });

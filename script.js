@@ -1,7 +1,6 @@
 let currentPage = 'dashboard';
 let products = [];
 let orders = [];
-let categories = [];
 let editingProduct = null;
 let orderItems = [];
 
@@ -129,7 +128,7 @@ async function loadDashboard() {
     try {
         showLoading();
         const stats = await apiCall('/reports/dashboard');
-        
+
         document.getElementById('total-products').textContent = stats.totalProducts;
         document.getElementById('total-orders').textContent = stats.totalOrders;
         document.getElementById('pending-orders').textContent = stats.pendingOrders;
@@ -146,7 +145,7 @@ async function loadDashboard() {
 
 function renderLowStockProducts(lowStockProducts) {
     const container = document.getElementById('low-stock-products');
-    
+
     if (lowStockProducts.length === 0) {
         container.innerHTML = '<p class="text-center">موجودی همه محصولات مناسب است</p>';
         return;
@@ -167,7 +166,7 @@ function renderLowStockProducts(lowStockProducts) {
 
 function renderRecentOrders(recentOrders) {
     const container = document.getElementById('recent-orders');
-    
+
     if (recentOrders.length === 0) {
         container.innerHTML = '<p class="text-center">سفارشی وجود ندارد</p>';
         return;
@@ -208,7 +207,7 @@ function filterProducts() {
     let filtered = products.filter(product => {
         const matchesSearch = product.name.toLowerCase().includes(searchTerm);
         const matchesLowStock = !showLowStock || product.stock <= product.min_stock;
-        
+
         return matchesSearch && matchesLowStock;
     });
 
@@ -265,7 +264,7 @@ function renderProductsTable(productsToShow) {
 }
 
 function getInventoryStatus(product) {
-    if (product.inventory <= 0) {
+    if (product.stock <= 0) {
         return { color: '#dc2626', text: 'ناموجود' };
     } else if (product.stock <= product.min_stock) {
         return { color: '#d97706', text: 'کم موجود' };
@@ -275,21 +274,51 @@ function getInventoryStatus(product) {
 }
 
 function editProduct(id) {
-    editingProduct = products.find(p => p.id === id);
-    if (editingProduct) {
-        document.getElementById('product-modal-title').textContent = 'ویرایش محصول';
-        document.getElementById('product-name').value = editingProduct.name;
-        document.getElementById('product-price').value = editingProduct.price;
-        document.getElementById('product-inventory').value = editingProduct.stock;
-        document.getElementById('product-min-stock').value = editingProduct.min_stock;
-        showModal('product-modal');
-    }
+    const editingProduct = products.find(p => p.id === id);
+    if (!editingProduct) return;
+
+    document.getElementById('product-modal-title').textContent = 'ویرایش محصول';
+    document.getElementById('product-description').value = editingProduct.description;
+    document.getElementById('product-name').value = editingProduct.name;
+    document.getElementById('product-price').value = editingProduct.price;
+    document.getElementById('product-stock').value = editingProduct.stock;
+    document.getElementById('product-min-stock').value = editingProduct.min_stock;
+
+    showModal('product-modal');
+
+    const form = document.getElementById('product-form');
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+
+        const formData = {
+            name: document.getElementById('product-name').value,
+            description: document.getElementById('product-description').value,
+            price: parseFloat(document.getElementById('product-price').value),
+            stock: parseInt(document.getElementById('product-stock').value),
+            min_stock: parseInt(document.getElementById('product-min-stock').value)
+        };
+
+        try {
+            const options = {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            };
+            const res = await fetch(`/api/products/${id}`, options);
+
+            hideModal('product-modal');
+            loadProducts();
+        } catch (error) {
+            showError('خطا در ذخیره محصول: ' + error.message);
+        }
+    };
 }
+
 
 async function deleteProduct(id) {
     if (confirm('آیا از حذف این محصول اطمینان دارید؟')) {
         try {
-            await apiCall(`/products/${id}`, { method: 'DELETE' });
+            await apiCall(`/api/products/${id}`, { method: 'DELETE' });
             loadProducts();
         } catch (error) {
             showError('خطا در حذف محصول: ' + error.message);
@@ -363,7 +392,7 @@ function renderOrdersTable(ordersToShow) {
 
 async function updateOrderStatus(orderId, newStatus) {
     try {
-        await apiCall(`/orders/${orderId}/status`, {
+        await apiCall(`/api/orders/${orderId}/status`, {
             method: 'PUT',
             body: JSON.stringify({ status: newStatus })
         });
@@ -376,7 +405,7 @@ async function updateOrderStatus(orderId, newStatus) {
 
 async function viewOrderDetails(orderId) {
     try {
-        const order = await apiCall(`/orders/${orderId}`);
+        const order = await apiCall(`/api/orders/${orderId}`);
         renderOrderDetails(order);
         showModal('order-details-modal');
     } catch (error) {
@@ -502,27 +531,21 @@ function initProductForm() {
 
     document.getElementById('product-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const formData = {
             name: document.getElementById('product-name').value,
+            description: document.getElementById('product-description').value,
             price: parseFloat(document.getElementById('product-price').value),
             stock: parseInt(document.getElementById('product-stock').value),
             min_stock: parseInt(document.getElementById('product-min-stock').value)
         };
 
         try {
-            if (editingProduct) {
-                await apiCall(`/products/${editingProduct.id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(formData)
-                });
-            } else {
-                await apiCall('/products', {
-                    method: 'POST',
-                    body: JSON.stringify(formData)
-                });
-            }
-            
+            await apiCall('/api/products', {
+                method: 'POST',
+                body: JSON.stringify(formData)
+            });
+
             hideModal('product-modal');
             loadProducts();
         } catch (error) {
@@ -547,7 +570,7 @@ function initOrderForm() {
 
     document.getElementById('order-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const validItems = orderItems.filter(item => item.product_id > 0 && item.quantity > 0);
         if (validItems.length === 0) {
             showError('حداقل یک آیتم باید انتخاب شود');
@@ -561,11 +584,11 @@ function initOrderForm() {
         };
 
         try {
-            await apiCall('/orders', {
+            await apiCall('/api/orders', {
                 method: 'POST',
                 body: JSON.stringify(formData)
             });
-            
+
             hideModal('order-modal');
             loadOrders();
         } catch (error) {
@@ -577,7 +600,7 @@ function initOrderForm() {
 async function renderOrderItems() {
     if (products.length === 0) {
         try {
-            products = await apiCall('/products');
+            products = await apiCall('/api/products');
         } catch (error) {
             showError('خطا در بارگیری محصولات: ' + error.message);
             return;
@@ -588,7 +611,7 @@ async function renderOrderItems() {
     container.innerHTML = orderItems.map((item, index) => {
         const selectedProduct = products.find(p => p.id === item.product_id);
         const totalPrice = selectedProduct ? selectedProduct.price * item.quantity : 0;
-        
+
         return `
             <div class="order-item">
                 <select class="product-select" onchange="updateOrderItem(${index}, 'product_id', parseInt(this.value))">
@@ -632,7 +655,7 @@ function updateOrderTotal() {
         const product = products.find(p => p.id === item.product_id);
         return sum + (product ? product.price * item.quantity : 0);
     }, 0);
-    
+
     document.getElementById('order-total-amount').textContent = formatPrice(total);
 }
 
@@ -645,9 +668,6 @@ function initEventListeners() {
     // Order filters
     document.getElementById('order-search').addEventListener('input', filterOrders);
     document.getElementById('status-filter').addEventListener('change', filterOrders);
-
-    // Reports filter
-    document.getElementById('reports-days').addEventListener('change', loadReports);
 }
 
 // Initialize app
@@ -657,7 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initProductForm();
     initOrderForm();
     initEventListeners();
-    
+
     // Load initial page
     loadDashboard();
 });
