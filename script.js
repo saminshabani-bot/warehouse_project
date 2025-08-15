@@ -156,10 +156,9 @@ function renderLowStockProducts(lowStockProducts) {
         <div class="product-item low-stock">
             <div class="item-info">
                 <h4>${product.name}</h4>
-                <p>${product.category}</p>
             </div>
             <div class="item-stats">
-                <div class="stat">موجودی: ${product.inventory}</div>
+                <div class="stat">موجودی: ${product.stock}</div>
                 <div class="label">حداقل: ${product.min_stock}</div>
             </div>
         </div>
@@ -177,12 +176,12 @@ function renderRecentOrders(recentOrders) {
     container.innerHTML = recentOrders.map(order => `
         <div class="order-item-display">
             <div class="item-info">
-                <h4>${order.order_number}</h4>
+                <h4>${order.id}</h4>
                 <p>${order.customer_name}</p>
             </div>
             <div class="item-stats">
                 <span class="status-badge ${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
-                <div class="stat">${formatPrice(order.total_amount)}</div>
+                <div class="stat">${formatPrice(order.total_price)}</div>
             </div>
         </div>
     `).join('');
@@ -208,7 +207,7 @@ function filterProducts() {
 
     let filtered = products.filter(product => {
         const matchesSearch = product.name.toLowerCase().includes(searchTerm);
-        const matchesLowStock = !showLowStock || product.inventory <= product.min_stock;
+        const matchesLowStock = !showLowStock || product.stock <= product.min_stock;
         
         return matchesSearch && matchesLowStock;
     });
@@ -268,7 +267,7 @@ function renderProductsTable(productsToShow) {
 function getInventoryStatus(product) {
     if (product.inventory <= 0) {
         return { color: '#dc2626', text: 'ناموجود' };
-    } else if (product.inventory <= product.min_stock) {
+    } else if (product.stock <= product.min_stock) {
         return { color: '#d97706', text: 'کم موجود' };
     } else {
         return { color: '#16a34a', text: 'موجود' };
@@ -281,7 +280,7 @@ function editProduct(id) {
         document.getElementById('product-modal-title').textContent = 'ویرایش محصول';
         document.getElementById('product-name').value = editingProduct.name;
         document.getElementById('product-price').value = editingProduct.price;
-        document.getElementById('product-inventory').value = editingProduct.inventory;
+        document.getElementById('product-inventory').value = editingProduct.stock;
         document.getElementById('product-min-stock').value = editingProduct.min_stock;
         showModal('product-modal');
     }
@@ -343,6 +342,8 @@ function renderOrdersTable(ordersToShow) {
                     ${order.customer_phone ? `<div style="font-size: 0.75rem; color: #6b7280;">${order.customer_phone}</div>` : ''}
                 </div>
             </td>
+            <td style="font-size: 0.75rem; color: #6b7280;">${order.product_name}</td>
+            <td style="font-size: .75rem; color:#6b7280;">${order.quantity}</td>
             <td>${formatPrice(order.total_price)}</td>
             <td>
                 <select onchange="updateOrderStatus(${order.id}, this.value)" class="status-badge ${getStatusClass(order.status)}" style="border: none; background: transparent; font-size: 0.75rem; font-weight: 500;">
@@ -389,7 +390,7 @@ function renderOrderDetails(order) {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
             <div>
                 <label style="font-size: 0.875rem; color: #6b7280;">شماره سفارش</label>
-                <p style="font-size: 1.125rem; font-weight: 600;">${order.order_number}</p>
+                <p style="font-size: 1.125rem; font-weight: 600;">${order.id}</p>
             </div>
             <div>
                 <label style="font-size: 0.875rem; color: #6b7280;">تاریخ ثبت</label>
@@ -405,10 +406,10 @@ function renderOrderDetails(order) {
                         <label style="font-size: 0.875rem; color: #6b7280;">نام مشتری</label>
                         <p>${order.customer_name}</p>
                     </div>
-                    ${order.customer_email ? `
+                    ${order.customer_phone ? `
                         <div>
                             <label style="font-size: 0.875rem; color: #6b7280;">ایمیل</label>
-                            <p>${order.customer_email}</p>
+                            <p>${order.customer_phone}</p>
                         </div>
                     ` : ''}
                 </div>
@@ -422,7 +423,6 @@ function renderOrderDetails(order) {
                     <thead>
                         <tr>
                             <th>محصول</th>
-                            <th>دسته‌بندی</th>
                             <th>قیمت واحد</th>
                             <th>تعداد</th>
                             <th>مجموع</th>
@@ -432,7 +432,6 @@ function renderOrderDetails(order) {
                         ${order.items.map(item => `
                             <tr>
                                 <td style="font-weight: 500;">${item.product_name}</td>
-                                <td>${item.category}</td>
                                 <td>${formatPrice(item.unit_price)}</td>
                                 <td>${item.quantity}</td>
                                 <td style="font-weight: 500;">${formatPrice(item.total_price)}</td>
@@ -446,7 +445,7 @@ function renderOrderDetails(order) {
         <div style="border-top: 1px solid #e5e7eb; padding-top: 1rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 1.25rem; font-weight: bold;">
                 <span>مجموع کل:</span>
-                <span style="color: #2563eb;">${formatPrice(order.total_amount)}</span>
+                <span style="color: #2563eb;">${formatPrice(order.total_price)}</span>
             </div>
         </div>
     `;
@@ -594,15 +593,15 @@ async function renderOrderItems() {
             <div class="order-item">
                 <select class="product-select" onchange="updateOrderItem(${index}, 'product_id', parseInt(this.value))">
                     <option value="0">محصول را انتخاب کنید</option>
-                    ${products.filter(p => p.inventory > 0).map(product => `
+                    ${products.filter(p => p.stock > 0).map(product => `
                         <option value="${product.id}" ${item.product_id === product.id ? 'selected' : ''}>
-                            ${product.name} - ${formatPrice(product.price)} (موجودی: ${product.inventory})
+                            ${product.name} - ${formatPrice(product.price)} (موجودی: ${product.stock})
                         </option>
                     `).join('')}
                 </select>
                 
                 <input type="number" class="quantity-input" value="${item.quantity}" min="1" 
-                       max="${selectedProduct?.inventory || 999}"
+                       max="${selectedProduct?.stock || 999}"
                        onchange="updateOrderItem(${index}, 'quantity', parseInt(this.value))">
                 
                 <div class="price-display">${formatPrice(totalPrice)}</div>

@@ -6,8 +6,9 @@ const db = require('../config/database');
 router.get('/', async (req, res) => {
   try {
     const { status, search } = req.query;
-    let query = `SELECT * 
+    let query = `SELECT o.*, p.name as product_name, p.price as product_price
                 FROM orders o
+                LEFT JOIN products p ON o.product_id = p.id
                 WHERE 1=1`;
     const params = [];
 
