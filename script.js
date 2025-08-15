@@ -328,8 +328,9 @@ function renderOrdersTable(ordersToShow) {
 
 async function updateOrderStatus(orderId, newStatus) {
     try {
-        await apiCall(`http://localhost:3000/api/orders/${orderId}`, {
+        await fetch(`http://localhost:3000/api/orders/${orderId}`, {
             method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: newStatus })
         });
         loadOrders();
