@@ -329,7 +329,7 @@ function renderOrdersTable(ordersToShow) {
 async function updateOrderStatus(orderId, newStatus) {
     try {
         await apiCall(`http://localhost:3000/api/orders/${orderId}`, {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify({ status: newStatus })
         });
         loadOrders();
@@ -341,7 +341,7 @@ async function updateOrderStatus(orderId, newStatus) {
 
 async function viewOrderDetails(orderId) {
     try {
-        const order = await apiCall(`/api/orders/${orderId}`);
+        const order = await apiCall(`http://localhost:3000/api/orders/${orderId}`);
         renderOrderDetails(order);
         showModal('order-details-modal');
     } catch (error) {
