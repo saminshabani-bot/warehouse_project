@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StoreTrack - سیستم مدیریت انبار</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>StoreTrack</h1>
+                </div>
+                <div class="header-subtitle">سیستم مدیریت انبار</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <ul class="nav-menu">
+                <li>
+                    <button class="nav-item active" data-page="dashboard">
+                        <span>داشبورد</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item" data-page="products">
+                        <span>محصولات</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item" data-page="orders">
+                        <span>سفارشات</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page active">
+                <div class="page-header">
+                    <h2>داشبورد</h2>
+                    <p>نمای کلی از وضعیت انبار و فروش</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <p class="stat-label">کل محصولات</p>
+                        <p class="stat-value" id="total-products">0</p>
+                    </div>
+
+                    <div class="stat-card">
+                        <p class="stat-label">کل سفارشات</p>
+                        <p class="stat-value" id="total-orders">0</p>
+                    </div>
+
+                    <div class="stat-card">
+                        <p class="stat-label">سفارشات در انتظار</p>
+                        <p class="stat-value" id="pending-orders">0</p>
+                    </div>
+
+                    <div class="stat-card">
+                        <p class="stat-label">درآمد هفتگی</p>
+                        <p class="stat-value" id="weekly-revenue">0 تومان</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>محصولات کم موجود</h3>
+                        </div>
+                        <div class="card-content">
+                            <div id="low-stock-products"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>سفارشات اخیر</h3>
+                        </div>
+                        <div class="card-content">
+                            <div id="recent-orders"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Page -->
+            <div id="products-page" class="page">
+                <div class="page-header">
+                    <div>
+                        <h2>مدیریت محصولات</h2>
+                        <p>افزودن، ویرایش و مدیریت محصولات انبار</p>
+                    </div>
+                    <button class="btn btn-primary" id="add-product-btn">
+                        افزودن محصول
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-content">
+                        <div class="filters">
+                            <div class="search-box">
+                                <input type="text" id="product-search" placeholder="جستجو در محصولات...">
+                            </div>
+                            <label class="checkbox-label" for="low-stock-filter">
+                                <input type="checkbox" id="low-stock-filter">
+                                <span>فقط کم موجود</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>محصول</th>
+                                    <th>توضیحات</th>
+                                    <th>قیمت</th>
+                                    <th>موجودی</th>
+                                    <th>وضعیت</th>
+                                    <th>تاریخ ورود</th>
+                                    <th>عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-table-body">
+                            </tbody>
+                        </table>
+                        <div id="products-empty" class="empty-state hidden">
+                            <h3>محصولی یافت نشد</h3>
+                            <p>برای شروع، محصول اول خود را اضافه کنید</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Page -->
+            <div id="orders-page" class="page">
+                <div class="page-header">
+                    <div>
+                        <h2>مدیریت سفارشات</h2>
+                        <p>ثبت و مدیریت سفارشات مشتریان</p>
+                    </div>
+                    <button class="btn btn-primary" id="add-order-btn">
+                        ثبت سفارش جدید
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-content">
+                        <div class="filters">
+                            <div class="search-box">
+                                <input type="text" id="order-search" placeholder="جستجو در سفارشات...">
+                            </div>
+                            <select id="status-filter">
+                                <option value="">همه وضعیت‌ها</option>
+                                <option value="pending">در انتظار</option>
+                                <option value="shipped">ارسال شده</option>
+                                <option value="cancelled">لغو شده</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>شماره سفارش</th>
+                                    <th>مشتری</th>
+                                    <th>مبلغ کل</th>
+                                    <th>وضعیت</th>
+                                    <th>تاریخ ثبت</th>
+                                    <th>عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orders-table-body">
+                            </tbody>
+                        </table>
+                        <div id="orders-empty" class="empty-state hidden">
+                            <h3>سفارشی یافت نشد</h3>
+                            <p>برای شروع، اولین سفارش را ثبت کنید</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <!-- Product Form Modal -->
+        <div id="product-modal" class="modal hidden">
+            <div class="modal-header">
+                <h3 id="product-modal-title">افزودن محصول جدید</h3>
+                <button class="modal-close" data-modal="product-modal">
+                </button>
+            </div>
+            <form id="product-form" class="modal-content">
+                <div class="form-group">
+                    <label for="product-name">نام محصول *</label>
+                    <input type="text" id="product-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="product-price">قیمت (تومان) *</label>
+                    <input type="number" id="product-price" min="0" step="1000" required>
+                </div>
+                <div class="form-group">
+                    <label for="product-inventory">موجودی *</label>
+                    <input type="number" id="product-inventory" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="product-min-stock">حداقل موجودی</label>
+                    <input type="number" id="product-min-stock" min="0" value="10">
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">ذخیره</button>
+                    <button type="button" class="btn btn-secondary" data-modal="product-modal">لغو</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Order Form Modal -->
+        <div id="order-modal" class="modal hidden">
+            <div class="modal-header">
+                <h3>ثبت سفارش جدید</h3>
+                <button class="modal-close" data-modal="order-modal">
+                </button>
+            </div>
+            <form id="order-form" class="modal-content">
+                <div class="form-section">
+                    <h4>اطلاعات مشتری</h4>
+                    <div class="form-group">
+                        <label for="customer-name">نام مشتری *</label>
+                        <input type="text" id="customer-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="customer-email">ایمیل مشتری</label>
+                        <input type="email" id="customer-email">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-header">
+                        <h4>آیتم‌های سفارش</h4>
+                        <button type="button" id="add-order-item" class="btn btn-sm btn-secondary">
+                            افزودن آیتم
+                        </button>
+                    </div>
+                    <div id="order-items"></div>
+                </div>
+
+                <div class="order-total">
+                    <strong>مجموع کل: <span id="order-total-amount">0 تومان</span></strong>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">ثبت سفارش</button>
+                    <button type="button" class="btn btn-secondary" data-modal="order-modal">لغو</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Order Details Modal -->
+        <div id="order-details-modal" class="modal hidden">
+            <div class="modal-header">
+                <h3>جزئیات سفارش</h3>
+                <button class="modal-close" data-modal="order-details-modal">
+                </button>
+            </div>
+            <div class="modal-content">
+                <div id="order-details-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
